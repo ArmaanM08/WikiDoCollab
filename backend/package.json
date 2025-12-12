@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "build": "npm install"
+    "build": "npm install",
     "start": "node src/index.js",
     "yjs": "y-websocket --port 1234",
     "lint": "eslint ."
