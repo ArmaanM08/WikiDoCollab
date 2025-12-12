@@ -1,0 +1,203 @@
+/* Design System for WikiDoCollab */
+:root {
+  --bg: #f8fafc; /* slate-50 */
+  --surface: #ffffff;
+  --text: #0f172a; /* slate-900 */
+  --muted: #475569; /* slate-600 */
+  --border: #e2e8f0; /* slate-200 */
+  --primary: #1f6feb; /* GitHub blue */
+  --primary-700: #1b5fd3;
+  --accent: #0ea5e9; /* sky-500 */
+  --success: #16a34a;
+  --danger: #dc2626;
+  --shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
+}
+
+/* Base reset */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Open Sans', system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  /* Requested heading font 'Amarna'; falls back to Amaranth (Google Fonts) */
+  font-family: 'Amarna', 'Amaranth', 'Open Sans', sans-serif;
+  margin: 0 0 12px;
+}
+h1 { font-weight: 800; font-size: 2rem; }
+h2 { font-weight: 700; font-size: 1.5rem; }
+h3 { font-weight: 600; font-size: 1.25rem; }
+p { margin: 0 0 12px; color: var(--muted); }
+
+/* Layout */
+.container {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 24px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.section { margin-top: 20px; }
+
+/* Navigation */
+.nav {
+  background: var(--surface);
+  border-bottom: 2px solid var(--border);
+  box-shadow: 0 10px 40px -2px var(--border);
+}
+.nav-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  /* background-color: #1f6feb; */
+}
+.brand {
+  font-family: 'Amarna', 'Amaranth', 'Open Sans', sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  box-shadow: none;
+  transition: none;
+}
+.nav-links { display: flex; gap: 12px; }
+.nav a {
+  color: var(--text);
+  text-decoration: none;
+  padding: 8px 10px;
+  border-radius: 8px;
+  box-shadow: 1.5px 1.5px lightgrey;
+  transition: all 80ms ease-in-out;
+}
+.nav a:hover{
+  transform: translateY(5px);
+  box-shadow: 1.5px 0px lightgrey;
+}
+.nav a:hover { background: var(--bg); }
+.nav a.active {
+  background: rgba(31, 111, 235, 0.12);
+  color: var(--primary);
+  border: 1px solid var(--primary);
+}
+.nav-actions { margin-left: auto; display: flex; gap: 10px; }
+
+/* Forms */
+.input, .textarea, .select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+.input:focus, .textarea:focus, .select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31, 111, 235, 0.15); }
+.textarea { resize: vertical; }
+.checkbox { width: 16px; height: 16px; accent-color: var(--primary); }
+.label { color: var(--muted); font-size: 0.95rem; }
+.form-row { display: flex; gap: 10px; align-items: center; }
+
+/* Buttons */
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.btn:hover { border-color: #cbd5e1; }
+.btn-primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--primary-700); border-color: var(--primary-700); }
+.btn-outline { background: transparent; }
+.btn-danger { border-color: var(--danger); color: var(--danger); }
+.btn-danger:hover { background: #fee2e2; }
+
+/* Lists */
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.list-item:last-child { border-bottom: none; }
+.list-item a { color: var(--primary); text-decoration: none; }
+.list-item a:hover { text-decoration: underline; }
+.item-meta { color: var(--muted); }
+
+/* Toolbar */
+.toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; align-items: center; }
+.status { margin-left: auto; color: var(--muted); }
+
+/* Utilities */
+.mt-8 { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mb-8 { margin-bottom: 8px; }
+.mb-16 { margin-bottom: 16px; }
+.w-full { width: 100%; }
+.flex { display: flex; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.align-center { align-items: center; }
+
+/* Specific page tweaks */
+.editor-textarea {
+  width: 100%;
+  min-height: 320px;
+  font-family: 'Open Sans', monospace;
+  line-height: 1.7;
+}
+
+/* Dark theme variables */
+[data-theme="dark"] {
+  --bg: #0b1220; /* deep slate */
+  --surface: #0f172a; /* slate-900 */
+  --text: #e2e8f0; /* slate-200 */
+  --muted: #a3b0c2; /* slate-400 */
+  --border: #1f2937; /* slate-800 */
+  --primary: #3b82f6; /* blue-500 */
+  --primary-700: #2563eb; /* blue-600 */
+  --accent: #38bdf8; /* sky-400 */
+  --success: #22c55e;
+  --danger: #ef4444;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Minor dark adjustments */
+[data-theme="dark"] .nav a:hover { background: #0b1324; }
+[data-theme="dark"] .btn { border-color: #223047; }
+[data-theme="dark"] .btn:hover { border-color: #2f3f59; }
+
+/* Tabs (Login mode toggle) */
+.tabs { display: inline-flex; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.tab {
+  padding: 8px 12px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+}
+.tab:last-child { border-right: none; }
+.tab.active { background: var(--bg); font-weight: 600; }
