@@ -1,8 +1,9 @@
 import axios from 'axios';
 
-// Point directly to backend port
+// Use environment-driven backend URL for Vercel deployment
+const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:5112';
 export const api = axios.create({
-  baseURL: 'http://localhost:5112',
+  baseURL,
   withCredentials: true,
 });
 

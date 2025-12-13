@@ -20,7 +20,8 @@ export default function EditorSession() {
 
   useEffect(() => {
     const token = sessionStorage.getItem('accessToken') || localStorage.getItem('accessToken');
-    const socket = io('http://localhost:5112', { auth: { token } });
+    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5112';
+    const socket = io(socketUrl, { auth: { token } });
     socketRef.current = socket;
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
