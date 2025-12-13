@@ -10,7 +10,7 @@ import authRouter from './routes/auth.js';
 import docRouter from './routes/documents.js';
 import publicRouter from './routes/public.js';
 import docMetaRouter from './routes/docmeta.js';
-import exportRouter from './routes/exports.js';
+// import exportRouter from './routes/exports.js';
 import { authenticateSocket } from './middleware/socketAuth.js';
 import requestsRouter from './routes/requests.js';
 
@@ -28,7 +28,8 @@ app.use('/api/auth', authRouter);
 app.use('/api/documents', docRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/documents', docMetaRouter);
-app.use('/api/documents', exportRouter);
+// Temporarily disable export routes to avoid puppeteer-core errors on Render
+// app.use('/api/documents', exportRouter);
 app.use('/api/requests', requestsRouter);
 
 // Mongo connection
