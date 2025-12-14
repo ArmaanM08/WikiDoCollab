@@ -19,7 +19,9 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/:id/versions', async (req, res) => {
-  const versions = await Version.find({ documentId: req.params.id }).sort({ createdAt: -1 });
+  const versions = await Version.find({ documentId: req.params.id })
+    .populate('authorId', 'displayName email')
+    .sort({ createdAt: -1 });
   res.json(versions);
 });
 

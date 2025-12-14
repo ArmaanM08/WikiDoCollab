@@ -18,7 +18,14 @@ export default function VersionHistory() {
         {versions.map(v => (
           <li className="list-item" key={v._id}>
             <div className="w-full">
-              {new Date(v.createdAt).toLocaleString()} — <span className="item-meta">{v.message || 'Snapshot'}</span>
+              <div>
+                {new Date(v.createdAt).toLocaleString()} — <span className="item-meta">{v.message || 'Snapshot'}</span>
+              </div>
+              {v.authorId && (
+                <div className="item-meta mt-8">
+                  Edited by: {v.authorId.displayName || v.authorId.email}
+                </div>
+              )}
             </div>
           </li>
         ))}
