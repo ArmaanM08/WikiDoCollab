@@ -50,7 +50,7 @@ router.post('/login', async (req, res) => {
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
   const token = signAccess(user);
   const refresh = signRefresh(user);
-  res.cookie('refresh_token', refresh, { httpOnly: true, sameSite: 'lax', secure: false });
+  res.cookie('refresh_token', refresh, { httpOnly: true, sameSite: 'lax', secure: true });
   return res.json({ token });
 });
 
@@ -85,7 +85,7 @@ router.post('/refresh', async (req, res) => {
 });
 
 router.post('/logout', (_req, res) => {
-  res.cookie('refresh_token', '', { httpOnly: true, sameSite: 'lax', secure: false, expires: new Date(0) });
+  res.cookie('refresh_token', '', { httpOnly: true, sameSite: 'lax', secure: true, expires: new Date(0) });
   return res.json({ ok: true });
 });
 

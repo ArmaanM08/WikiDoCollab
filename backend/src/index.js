@@ -17,10 +17,10 @@ import requestsRouter from './routes/requests.js';
 const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server, {
-  cors: { origin: ['http://localhost:5173', 'https://my-project-wikidocollab.vercel.app'], methods: ['GET', 'POST'], credentials: true }
+  cors: { origin: ['http://localhost:5173', 'https://my-project-wikidocollab.vercel.app/'], methods: ['GET', 'POST'], credentials: true }
 });
 
-app.use(cors({ origin: ['http://localhost:5173', 'https://my-project-wikidocollab.vercel.app'], credentials: true }));
+app.use(cors({ origin: ['http://localhost:5173', 'https://my-project-wikidocollab.vercel.app/'], credentials: true }));
 app.use(express.json());
 
 // REST routes
