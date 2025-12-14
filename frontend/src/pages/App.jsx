@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Link, NavLink, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import Login from './Login.jsx';
 import DocumentLibrary from './DocumentLibrary.jsx';
 import EditorSession from './EditorSession.jsx';
@@ -12,13 +12,13 @@ import { AuthProvider, useAuth } from '../auth.jsx';
 function Nav() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [theme, setTheme] = useState('');
+  const location = useLocation();
+  const [theme, setTheme] = useState('light');
 
   useEffect(() => {
-    // Initialize theme from localStorage or OS preference
+    // Initialize theme from localStorage; default to light regardless of OS
     const saved = localStorage.getItem('theme');
-    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const initial = saved || (prefersDark ? 'dark' : 'light');
+    const initial = saved || 'light';
     setTheme(initial);
     document.documentElement.setAttribute('data-theme', initial);
   }, []);
@@ -29,15 +29,16 @@ function Nav() {
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
   };
+  // Hide nav on Landing and Profile routes per requirements
+  if (location.pathname === '/landing' || location.pathname.startsWith('/profile') || location.pathname === '/') return null;
+
   return (
     <header className="nav">
       <div className="nav-inner">
-        <div className="brand"><Link to="/" style={{ textDecoration: 'none', color: 'inherit', transitions: 'none', boxShadow: 'none'}}>WikiDoCollab</Link></div>
+        <div className="brand"><Link to="/library" style={{ textDecoration: 'none', color: 'inherit' }}>WikiDoCollab</Link></div>
         <nav className="nav-links fancy">
-          <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Library</NavLink>
-          <NavLink to="/landing" className={({ isActive }) => isActive ? 'active' : ''}>Landing</NavLink>
+          <NavLink to="/library" end className={({ isActive }) => isActive ? 'active' : ''}>Library</NavLink>
           {user && <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>}
-          {user && <NavLink to="/requests" className={({ isActive }) => isActive ? 'active' : ''}>Requests</NavLink>}
         </nav>
         <div className="nav-actions">
           <button className="btn" onClick={toggleTheme}>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</button>
@@ -58,11 +59,10 @@ export default function App() {
       <Nav />
       <main className="container">
         <Routes>
-          <Route path="/" element={<DocumentLibrary />} />
-          <Route path="/landing" element={<Landing />} />
+          <Route path="/" element={<Landing />} />
+          <Route path="/library" element={<DocumentLibrary />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/requests" element={<Requests />} />
           <Route path="/doc/:id" element={<EditorSession />} />
           <Route path="/doc/:id/versions" element={<VersionHistory />} />
         </Routes>

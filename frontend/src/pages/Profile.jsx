@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 
 export default function Profile() {
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [docs, setDocs] = useState([]);
   const [pending, setPending] = useState([]);
   const [nameEdit, setNameEdit] = useState('');
@@ -55,51 +56,63 @@ export default function Profile() {
   };
 
   return (
-    <div>
-      <h2>Profile</h2>
-      <div className="card mt-16">
-        <h3>Account</h3>
-        <div className="section">
-          <label className="label">Display Name</label>
-          <div className="form-row">
-            <input className="input" value={nameEdit} onChange={e => setNameEdit(e.target.value)} placeholder="Your name" />
-            <button className="btn btn-primary" onClick={saveDisplayName} disabled={savingName}>{savingName ? 'Saving…' : 'Save'}</button>
-          </div>
-          <p className="item-meta mt-8">Email: {user.email}</p>
-        </div>
+    <div className="profile fade-in">
+      <div className="profile-header">
+        <button className="btn" onClick={() => navigate('/library')}>← Back to Library</button>
+        <button className="btn btn-primary" onClick={() => { logout(); navigate('/'); }}>Logout</button>
       </div>
-      <div className="section">
-        <h3>Your Documents</h3>
-        <ul className="list card mt-8">
-          {docs.map(d => (
-            <li className="list-item" key={d._id}>
-              <div className="w-full">
-                <Link to={`/doc/${d._id}`}>{d.title}</Link>
-                {' '}· <Link to={`/doc/${d._id}/versions`}>versions</Link>
+      <div className="card-glass mt-32 slide-up">
+        <h2>Profile</h2>
+        <div className="grid-2 mt-16">
+          <div>
+            <h3>Account</h3>
+            <div className="section">
+              <label className="label">Display Name</label>
+              <div className="form-row">
+                <input className="input" value={nameEdit} onChange={e => setNameEdit(e.target.value)} placeholder="Your name" />
+                <button className="btn btn-primary" onClick={saveDisplayName} disabled={savingName}>{savingName ? 'Saving…' : 'Save'}</button>
               </div>
-              {(d.ownerId === user._id || (d.ownerId && d.ownerId._id === user._id)) && (
-                <button className="btn btn-danger" onClick={() => deleteDoc(d._id)}>Delete</button>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-      {pending.length > 0 && (
-        <div className="section">
-          <h3>Pending Collaboration Requests</h3>
-          <ul className="list card mt-8">
-            {pending.map(p => (
-              <li className="list-item" key={`${p.docId}:${p.userId}`}>
-                <div className="w-full">
-                  Request from {p.userId} on doc {p.docId}
-                </div>
-                <button className="btn btn-primary" onClick={() => decide(p.docId, p.userId, true)}>Approve</button>
-                <button className="btn" onClick={() => decide(p.docId, p.userId, false)}>Reject</button>
-              </li>
-            ))}
-          </ul>
+              <p className="item-meta mt-8">Email: {user.email}</p>
+              <p className="item-meta">Date joined: {new Date(user.createdAt).toLocaleDateString()}</p>
+            </div>
+          </div>
+          <div>
+            <h3>Documents</h3>
+            <div className="grid-2 mt-8">
+              <div>
+                <h4>Private Docs</h4>
+                <ul className="list card mt-8">
+                  {docs.filter(d => d.isPrivate).map(d => (
+                    <li className="list-item" key={d._id}>
+                      <div className="w-full">
+                        <Link to={`/doc/${d._id}`}>{d.title}</Link>
+                      </div>
+                      {(d.ownerId === user._id || (d.ownerId && d.ownerId._id === user._id)) && (
+                        <button className="btn btn-danger" onClick={() => deleteDoc(d._id)}>Delete</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4>Public Docs</h4>
+                <ul className="list card mt-8">
+                  {docs.filter(d => !d.isPrivate).map(d => (
+                    <li className="list-item" key={d._id}>
+                      <div className="w-full">
+                        <Link to={`/doc/${d._id}`}>{d.title}</Link>
+                      </div>
+                      {(d.ownerId === user._id || (d.ownerId && d.ownerId._id === user._id)) && (
+                        <button className="btn btn-danger" onClick={() => deleteDoc(d._id)}>Delete</button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
