@@ -16,11 +16,28 @@ import requestsRouter from './routes/requests.js';
 
 const app = express();
 const server = http.createServer(app);
-const io = new SocketIOServer(server, {
-  cors: { origin: [ 'https://my-project-wikidocollab.vercel.app/'], methods: ['GET', 'POST'], credentials: true }
-});
+// Allow local dev and Vercel deployments
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://my-project-git-main-armaan-mulanis-projects.vercel.app',
+  'https://my-project-wikidocollab.vercel.app'
+];
 
-app.use(cors({ origin: ['https://my-project-wikidocollab.vercel.app/'], credentials: true }));
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+const io = new SocketIOServer(server, { cors: { ...corsOptions } });
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // REST routes
