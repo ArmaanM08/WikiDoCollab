@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Use environment-driven backend URL for Vercel deployment
-const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:5112';
+const baseURL = import.meta.env.VITE_API_BASE || 'https://wikidocollab.onrender.com';
 export const api = axios.create({
   baseURL,
   withCredentials: true,
