@@ -6,6 +6,7 @@ import EditorSession from './EditorSession.jsx';
 import VersionHistory from './VersionHistory.jsx';
 import Profile from './Profile.jsx';
 import Requests from './Requests.jsx';
+import Landing from './Landing.jsx';
 import { AuthProvider, useAuth } from '../auth.jsx';
 
 function Nav() {
@@ -32,8 +33,9 @@ function Nav() {
     <header className="nav">
       <div className="nav-inner">
         <div className="brand"><Link to="/" style={{ textDecoration: 'none', color: 'inherit', transitions: 'none', boxShadow: 'none'}}>WikiDoCollab</Link></div>
-        <nav className="nav-links">
+        <nav className="nav-links fancy">
           <NavLink to="/" end className={({ isActive }) => isActive ? 'active' : ''}>Library</NavLink>
+          <NavLink to="/landing" className={({ isActive }) => isActive ? 'active' : ''}>Landing</NavLink>
           {user && <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>}
           {user && <NavLink to="/requests" className={({ isActive }) => isActive ? 'active' : ''}>Requests</NavLink>}
         </nav>
@@ -57,6 +59,7 @@ export default function App() {
       <main className="container">
         <Routes>
           <Route path="/" element={<DocumentLibrary />} />
+          <Route path="/landing" element={<Landing />} />
           <Route path="/login" element={<Login />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/requests" element={<Requests />} />
