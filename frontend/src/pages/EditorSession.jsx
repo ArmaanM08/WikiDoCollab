@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import { generateThumbnail } from '../utils/thumbnailGenerator.js';
 
 export default function EditorSession() {
   const { id } = useParams();
@@ -38,6 +39,10 @@ export default function EditorSession() {
       await api.post(`/api/documents/${id}/content`, { content: text });
       const snapshotBase64 = btoa(unescape(encodeURIComponent(text)));
       await api.post(`/api/documents/${id}/versions`, { message: saveMsg || 'Manual save', snapshot: snapshotBase64 });
+      
+      // Generate thumbnail for the document
+      await generateThumbnail(text, id);
+      
       setSaveMsg('');
     } catch (e) {
       // minimal: could show error state

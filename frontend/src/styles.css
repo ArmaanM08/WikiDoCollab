@@ -693,6 +693,25 @@ a:hover {
   justify-content: center;
   font-size: 3rem;
   opacity: 0.5;
+  overflow: hidden;
+  position: relative;
+}
+
+.doc-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 1;
+}
+
+.doc-thumb-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 3rem;
 }
 
 .doc-info h3 {

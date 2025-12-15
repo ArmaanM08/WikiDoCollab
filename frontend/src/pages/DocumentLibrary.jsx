@@ -2,21 +2,55 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Link } from 'react-router-dom';
+import { getCachedThumbnail, generateThumbnail } from '../utils/thumbnailGenerator.js';
 
 export default function DocumentLibrary() {
   const [docs, setDocs] = useState([]);
   const [title, setTitle] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
+  const [thumbnails, setThumbnails] = useState({});
   const { user } = useAuth();
 
   useEffect(() => {
-    api
-      .get('/api/public/documents')
-      .then(res => {
-        const data = res?.data;
-        setDocs(Array.isArray(data) ? data : []);
-      })
-      .catch(() => setDocs([]));
+    const loadDocuments = () => {
+      api
+        .get('/api/public/documents')
+        .then(res => {
+          const data = res?.data;
+          setDocs(Array.isArray(data) ? data : []);
+          
+          // Load thumbnails for all documents
+          if (Array.isArray(data)) {
+            const thumbs = {};
+            data.forEach(doc => {
+              const cached = getCachedThumbnail(doc._id);
+              if (cached) {
+                thumbs[doc._id] = cached;
+              }
+            });
+            setThumbnails(thumbs);
+          }
+        })
+        .catch(() => setDocs([]));
+    };
+    
+    loadDocuments();
+    
+    // Reload thumbnails when user navigates back to this page
+    const handleFocus = () => {
+      // Refresh thumbnails from cache
+      const thumbs = {};
+      docs.forEach(doc => {
+        const cached = getCachedThumbnail(doc._id);
+        if (cached) {
+          thumbs[doc._id] = cached;
+        }
+      });
+      setThumbnails(thumbs);
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const createDoc = async () => {
@@ -25,6 +59,15 @@ export default function DocumentLibrary() {
       const res = await api.post('/api/documents', { title, isPrivate });
       const doc = res?.data;
       setDocs(prev => (doc && doc._id ? [doc, ...(Array.isArray(prev) ? prev : [])] : Array.isArray(prev) ? prev : []));
+      
+      // Generate initial thumbnail for new document (empty)
+      if (doc && doc._id) {
+        const thumbnail = await generateThumbnail('', doc._id);
+        if (thumbnail) {
+          setThumbnails(prev => ({ ...prev, [doc._id]: thumbnail }));
+        }
+      }
+      
       setTitle('');
     } catch {
       // keep existing list if creation fails
@@ -71,7 +114,13 @@ export default function DocumentLibrary() {
       <div className="cards-grid mt-32">
         {docs.map(d => (
           <div className="doc-card" key={d._id}>
-            <div className="doc-thumb" />
+            <div className="doc-thumb">
+              {thumbnails[d._id] ? (
+                <img src={thumbnails[d._id]} alt={`${d.title} preview`} className="doc-thumb-img" />
+              ) : (
+                <div className="doc-thumb-placeholder">📄</div>
+              )}
+            </div>
             <div className="doc-info">
               <h3><Link to={`/doc/${d._id}`}>{d.title}</Link></h3>
               <div className="item-meta">
