@@ -20,7 +20,7 @@ export default function Login() {
       sessionStorage.setItem('accessToken', res.data.token);
       setMessage('Logged in');
       await authLogin(res.data.token);
-      navigate('/profile');
+      navigate('/library');
     } catch (e) {
       setMessage('Login failed');
     }

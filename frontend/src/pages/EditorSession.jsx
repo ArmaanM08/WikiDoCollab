@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
@@ -7,6 +7,7 @@ import { generateThumbnail } from '../utils/thumbnailGenerator.js';
 
 export default function EditorSession() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const socketRef = useRef(null);
   const { user } = useAuth();
   const [saveMsg, setSaveMsg] = useState('');
@@ -74,7 +75,15 @@ export default function EditorSession() {
 
   return (
     <div>
-      <h2>Editor</h2>
+      <div className="editor-header">
+        <button className="back-btn" onClick={() => navigate('/library')} title="Back to Library">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Library
+        </button>
+        <h2>Editor</h2>
+      </div>
       <Toolbar />
       <textarea
         className="textarea editor-textarea"
