@@ -1,12 +1,33 @@
 import html2canvas from 'html2canvas';
 
+function extractText(content) {
+  if (!content) return '';
+  try {
+    const blocks = JSON.parse(content);
+    if (Array.isArray(blocks)) {
+      return blocks
+        .map(block => {
+          if (Array.isArray(block.content)) {
+            return block.content.map(c => c.text || '').join('');
+          }
+          return '';
+        })
+        .filter(Boolean)
+        .slice(0, 5)
+        .join('\n');
+    }
+  } catch (e) {
+    // fallback
+  }
+  return String(content);
+}
+
 /**
- * Generates a thumbnail image from document content
- * @param {string} content - The document text content
- * @param {string} docId - The document ID for caching
+ * Generates a thumbnail image from document content (plain text or BlockNote JSON)
+ * @param {string} content - The document text content or JSON
  * @returns {Promise<string>} - Base64 data URL of the thumbnail
  */
-export async function generateThumbnail(content, docId) {
+export async function generateThumbnail(content) {
   try {
     // Create a hidden container to render the document content
     const container = document.createElement('div');
@@ -25,8 +46,9 @@ export async function generateThumbnail(content, docId) {
       box-sizing: border-box;
     `;
     
+    const plainText = extractText(content);
     // Get first 500 characters for preview
-    const previewContent = content.slice(0, 500);
+    const previewContent = plainText.slice(0, 500);
     
     // Convert line breaks to proper HTML
     const formattedContent = previewContent
@@ -41,7 +63,7 @@ export async function generateThumbnail(content, docId) {
     // Capture as canvas
     const canvas = await html2canvas(container, {
       backgroundColor: '#ffffff',
-      scale: 0.5, // Reduce scale for smaller file size
+      scale: 0.5,
       logging: false,
       width: 800,
       height: 600,
@@ -62,41 +84,9 @@ export async function generateThumbnail(content, docId) {
     // Cleanup
     document.body.removeChild(container);
     
-    // Cache in localStorage
-    try {
-      localStorage.setItem(`thumbnail_${docId}`, dataUrl);
-    } catch (e) {
-      console.warn('Failed to cache thumbnail:', e);
-    }
-    
     return dataUrl;
   } catch (error) {
     console.error('Error generating thumbnail:', error);
     return null;
-  }
-}
-
-/**
- * Get cached thumbnail from localStorage
- * @param {string} docId - The document ID
- * @returns {string|null} - Base64 data URL or null if not cached
- */
-export function getCachedThumbnail(docId) {
-  try {
-    return localStorage.getItem(`thumbnail_${docId}`);
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Clear thumbnail cache for a document
- * @param {string} docId - The document ID
- */
-export function clearThumbnailCache(docId) {
-  try {
-    localStorage.removeItem(`thumbnail_${docId}`);
-  } catch (e) {
-    console.warn('Failed to clear thumbnail cache:', e);
   }
 }

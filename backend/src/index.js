@@ -13,17 +13,26 @@ import docMetaRouter from './routes/docmeta.js';
 // import exportRouter from './routes/exports.js';
 import { authenticateSocket } from './middleware/socketAuth.js';
 import requestsRouter from './routes/requests.js';
+import Document from './models/Document.js';
 
 const app = express();
 const server = http.createServer(app);
-// Allow local dev and Vercel deployments
+// Allow local dev and Vercel deployments; be permissive in development to avoid
+// CORS issues with engine.io polling endpoints during local testing.
 const allowedOrigins = [
   'http://localhost:5173',
   'https://my-project-git-main-armaan-mulanis-projects.vercel.app',
   'https://my-project-wikidocollab.vercel.app'
 ];
 
-const corsOptions = {
+const isDev = process.env.NODE_ENV !== 'production';
+
+const corsOptions = isDev ? {
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+} : {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) return callback(null, true);
@@ -34,7 +43,18 @@ const corsOptions = {
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 
-const io = new SocketIOServer(server, { cors: { ...corsOptions } });
+// Socket.IO CORS: in dev allow all origins (helps with polling preflight). In
+// production restrict to the allowedOrigins list.
+const io = new SocketIOServer(server, {
+  cors: isDev ? {
+    origin: '*',
+    methods: ['GET', 'POST', 'OPTIONS']
+  } : {
+    origin: allowedOrigins,
+    methods: ['GET', 'POST', 'OPTIONS'],
+    credentials: true
+  }
+});
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -66,7 +86,6 @@ io.on('connection', (socket) => {
     socket.join(docId);
     socket.to(docId).emit('presence', { userId: socket.user?._id, joined: true });
     try {
-      const { default: Document } = await import('./models/Document.js');
       const doc = await Document.findById(docId).select('content isPrivate ownerId collaboratorIds');
       // Send current content to the joining client (read-only clients can still view if not private)
       const uid = socket.user?._id?.toString();
@@ -79,7 +98,6 @@ io.on('connection', (socket) => {
   socket.on('doc-ops', async ({ docId, content }) => {
     if (!docId || typeof content !== 'string') return;
     try {
-      const { default: Document } = await import('./models/Document.js');
       const doc = await Document.findById(docId).select('ownerId collaboratorIds');
       const uid = socket.user?._id?.toString();
       const canEdit = uid && (doc?.ownerId?.toString() === uid || doc?.collaboratorIds?.some(id => id.toString() === uid));

@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 
 const versionSchema = new mongoose.Schema({
-  documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document', required: true },
+  documentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Document', required: true, index: true },
   authorId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   message: { type: String },
   snapshot: { type: Buffer },

@@ -12,6 +12,11 @@ router.get('/:id/capability', optionalAuth, async (req, res) => {
   const uid = req.user?._id?.toString();
   const isOwner = uid && doc.ownerId?.toString() === uid;
   const isCollaborator = uid && doc.collaboratorIds?.some(id => id.toString() === uid);
+  
+  if (doc.isPrivate && !isOwner && !isCollaborator) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+
   res.json({
     _id: doc._id,
     title: doc.title,
@@ -33,14 +38,19 @@ router.get('/:id/content', optionalAuth, async (req, res) => {
   res.json({ content: doc.content || '' });
 });
 
-// Update content (owner/collaborator only)
+// Update content & thumbnail (owner/collaborator only)
 router.post('/:id/content', requireAuth, async (req, res) => {
   const doc = await Document.findById(req.params.id).select('ownerId collaboratorIds');
   if (!doc) return res.status(404).json({ error: 'Not found' });
   const uid = req.user?._id?.toString();
   const canEdit = uid && (doc.ownerId?.toString() === uid || doc.collaboratorIds?.some(id => id.toString() === uid));
   if (!canEdit) return res.status(403).json({ error: 'Forbidden' });
-  const { content } = req.body;
-  await Document.updateOne({ _id: req.params.id }, { $set: { content: String(content || '') } });
+  
+  const { content, thumbnail } = req.body;
+  const updateFields = {};
+  if (content !== undefined) updateFields.content = String(content);
+  if (thumbnail !== undefined) updateFields.thumbnail = String(thumbnail);
+  
+  await Document.updateOne({ _id: req.params.id }, { $set: updateFields });
   res.json({ ok: true });
 });

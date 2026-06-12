@@ -1,7 +1,12 @@
 import axios from 'axios';
 
 // Use environment-driven backend URL for Vercel deployment
-const baseURL = import.meta.env.VITE_API_BASE || 'https://wikidocollab.onrender.com';
+export const baseURL = import.meta.env.VITE_API_BASE || 'https://wikidocollab.onrender.com';
+
+export function getSocketURL() {
+  return import.meta.env.VITE_SOCKET_URL || baseURL;
+}
+
 export const api = axios.create({
   baseURL,
   withCredentials: true,
@@ -36,6 +41,7 @@ api.interceptors.response.use(
           // refresh failed: clear token
           sessionStorage.removeItem('accessToken');
           localStorage.removeItem('accessToken');
+          window.dispatchEvent(new Event('auth-logout'));
         } finally {
           isRefreshing = false;
           pending.forEach((fn) => fn());

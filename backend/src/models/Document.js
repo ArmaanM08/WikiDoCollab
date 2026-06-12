@@ -13,6 +13,7 @@ const documentSchema = new mongoose.Schema({
   }],
   content: { type: String, default: '' },
   snapshot: { type: Buffer },
+  thumbnail: { type: String },
 }, { timestamps: true });
 
 export default mongoose.model('Document', documentSchema);

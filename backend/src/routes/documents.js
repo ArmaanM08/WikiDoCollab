@@ -19,6 +19,12 @@ router.post('/', async (req, res) => {
 });
 
 router.get('/:id/versions', async (req, res) => {
+  const doc = await Document.findById(req.params.id).select('ownerId collaboratorIds isPrivate');
+  if (!doc) return res.status(404).json({ error: 'Not found' });
+  const uid = req.user._id.toString();
+  const hasAccess = !doc.isPrivate || (doc.ownerId.toString() === uid || doc.collaboratorIds.some(id => id.toString() === uid));
+  if (!hasAccess) return res.status(403).json({ error: 'Forbidden' });
+
   const versions = await Version.find({ documentId: req.params.id })
     .populate('authorId', 'displayName email')
     .sort({ createdAt: -1 });
@@ -26,6 +32,12 @@ router.get('/:id/versions', async (req, res) => {
 });
 
 router.post('/:id/versions', async (req, res) => {
+  const doc = await Document.findById(req.params.id).select('ownerId collaboratorIds');
+  if (!doc) return res.status(404).json({ error: 'Not found' });
+  const uid = req.user._id.toString();
+  const canEdit = doc.ownerId.toString() === uid || doc.collaboratorIds.some(id => id.toString() === uid);
+  if (!canEdit) return res.status(403).json({ error: 'Forbidden' });
+
   const { message, snapshot } = req.body; // snapshot should be base64
   const snapBuf = snapshot ? Buffer.from(snapshot, 'base64') : undefined;
   const version = await Version.create({ documentId: req.params.id, authorId: req.user._id, message, snapshot: snapBuf });

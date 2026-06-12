@@ -30,6 +30,14 @@ export function AuthProvider({ children }) {
     init();
   }, []);
 
+  useEffect(() => {
+    const handleLogout = () => {
+      setUser(null);
+    };
+    window.addEventListener('auth-logout', handleLogout);
+    return () => window.removeEventListener('auth-logout', handleLogout);
+  }, []);
+
   const login = (token) => {
     sessionStorage.setItem('accessToken', token);
     return api.get('/api/auth/me').then(res => { setUser(res.data); return res.data; });

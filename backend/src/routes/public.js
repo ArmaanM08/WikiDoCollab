@@ -16,6 +16,7 @@ router.get('/documents', optionalAuth, async (req, res) => {
     isPrivate: d.isPrivate,
     owner: d.ownerId ? { id: d.ownerId._id, name: d.ownerId.displayName || d.ownerId.email } : null,
     collaborators: (d.collaboratorIds || []).map(c => ({ id: c._id, name: c.displayName || c.email })),
+    thumbnail: d.thumbnail,
     updatedAt: d.updatedAt,
   }));
   res.json(mapped);

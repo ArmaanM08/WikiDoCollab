@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Routes, Route, Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, NavLink, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import Login from './Login.jsx';
 import DocumentLibrary from './DocumentLibrary.jsx';
 import EditorSession from './EditorSession.jsx';
 import VersionHistory from './VersionHistory.jsx';
 import Profile from './Profile.jsx';
-import Requests from './Requests.jsx';
 import Landing from './Landing.jsx';
 import { AuthProvider, useAuth } from '../auth.jsx';
 
@@ -16,7 +15,6 @@ function Nav() {
   const [theme, setTheme] = useState('light');
 
   useEffect(() => {
-    // Initialize theme from localStorage; default to light regardless of OS
     const saved = localStorage.getItem('theme');
     const initial = saved || 'light';
     setTheme(initial);
@@ -24,33 +22,56 @@ function Nav() {
   }, []);
 
   const toggleTheme = () => {
-    const next = (theme === 'dark') ? 'light' : 'dark';
+    const next = theme === 'dark' ? 'light' : 'dark';
     setTheme(next);
     document.documentElement.setAttribute('data-theme', next);
     localStorage.setItem('theme', next);
   };
-  // Hide nav on Landing and Profile routes per requirements
-  if (location.pathname === '/landing' || location.pathname.startsWith('/profile') || location.pathname === '/') return null;
+
+  // Hide header only on landing page to maximize space for video art
+  if (location.pathname === '/') return null;
 
   return (
     <header className="nav">
       <div className="nav-inner">
-        <div className="brand"><Link to="/library" style={{ textDecoration: 'none', color: 'inherit' }}>WikiDoCollab</Link></div>
-        <nav className="nav-links fancy">
+        <div className="brand">
+          <Link to="/library" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '500' }}>
+            <span style={{ fontSize: '1.25rem' }}>🖋️</span>
+            <span>WikiDoCollab</span>
+          </Link>
+        </div>
+        <nav className="nav-links">
           <NavLink to="/library" end className={({ isActive }) => isActive ? 'active' : ''}>Library</NavLink>
           {user && <NavLink to="/profile" className={({ isActive }) => isActive ? 'active' : ''}>Profile</NavLink>}
         </nav>
         <div className="nav-actions">
-          <button className="btn" onClick={toggleTheme}>{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</button>
+          <button className="btn btn-outline" onClick={toggleTheme} aria-label="Toggle dark mode" style={{ width: '38px', height: '38px', padding: 0 }}>
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           {user ? (
-            <button className="btn" onClick={() => { logout(); navigate('/'); }}>Logout</button>
+            <button className="btn btn-primary" onClick={() => { logout(); navigate('/'); }}>Logout</button>
           ) : (
-            <Link to="/login" className="btn">Login</Link>
+            <Link to="/login" className="btn btn-primary">Login</Link>
           )}
         </div>
       </div>
     </header>
   );
+}
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) {
+    return (
+      <div className="container" style={{ textAlign: 'center', marginTop: '6rem' }}>
+        <p style={{ color: 'var(--text-muted)' }}>Checking authentication status…</p>
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
 }
 
 export default function App() {
@@ -62,9 +83,17 @@ export default function App() {
           <Route path="/" element={<Landing />} />
           <Route path="/library" element={<DocumentLibrary />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/profile" element={<Profile />} />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            } 
+          />
           <Route path="/doc/:id" element={<EditorSession />} />
           <Route path="/doc/:id/versions" element={<VersionHistory />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
     </AuthProvider>

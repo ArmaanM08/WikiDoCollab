@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth.jsx';
 
 export default function Landing() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
-    // Set dark mode as default for landing page
     const saved = localStorage.getItem('theme');
     const initial = saved || 'dark';
     setTheme(initial);
@@ -22,42 +23,60 @@ export default function Landing() {
 
   return (
     <div className="landing fade-in">
-      <button className="theme-toggle-landing" onClick={toggleTheme}>
+      <button className="theme-toggle-landing btn btn-outline" onClick={toggleTheme}>
         {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
-      <div className="hero slide-up">
-        <div className='video-background'>
-          <iframe 
-            src="https://www.youtube.com/embed/tmCMfwXzTaY?autoplay=1&mute=1&loop=1&playlist=tmCMfwXzTaY&controls=0&showinfo=0&modestbranding=1&playsinline=1" 
-            title="Background Video"
-            frameBorder="0"
-            allow="autoplay; encrypted-media"
-            allowFullScreen
-          ></iframe>
+
+      <div className="hero">
+        <div className="video-background">
+          <video autoPlay muted loop playsInline>
+            <source src="/Background.mp4" type="video/mp4" />
+            <source src="/Background.webm" type="video/webm" />
+          </video>
         </div>
-        <div className="hero-content card glass">
-          <h1 className="hero-title">Collaborate. Create. Commit.</h1>
-          <p className="hero-sub">A sleek, real‑time docs platform for teams and classmates. Simple to use, powerful under the hood.</p>
+
+        <div className="hero-content card glass slide-up">
+          <h1 className="hero-title">Collaborate.<br />Create. Commit.</h1>
+          <p className="hero-sub">
+            A real-time workspace for documentation and editing. Refined tools, elegant design, and seamless version history.
+          </p>
           <div className="hero-actions">
-            <Link className="btn btn-primary btn-lg" to="/login">Get Started</Link>
-            <button className="btn btn-outline btn-lg" onClick={() => navigate('/')}>
-              Browse Documents
-            </button>
+            {user ? (
+              <button className="btn btn-primary btn-lg" onClick={() => navigate('/library')}>
+                Go to Library
+              </button>
+            ) : (
+              <>
+                <button className="btn btn-primary btn-lg" onClick={() => navigate('/login')}>
+                  Get Started
+                </button>
+                <button className="btn btn-outline btn-lg" onClick={() => navigate('/library')}>
+                  Browse Documents
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
-      <div className="features slide-up">
-        <div className="feature card glass">
-          <h3>Live Collaboration</h3>
-          <p className="item-meta">Edit together with instant updates and conflict‑safe merges.</p>
+
+      <div className="features slide-up" style={{ animationDelay: '0.15s' }}>
+        <div className="feature">
+          <h3>BlockNote Rich Text</h3>
+          <p className="item-meta">
+            Create structured, media-rich documents with a powerful block-based canvas.
+          </p>
         </div>
-        <div className="feature card glass" style={{transitionDelay:'0.05s'}}>
-          <h3>Version History</h3>
-          <p className="item-meta">Save snapshots, track changes, and download when needed.</p>
+        <div className="feature">
+          <h3>Real-time Sync</h3>
+          <p className="item-meta">
+            Edit simultaneously with team members. Edits update live without conflict loops.
+          </p>
         </div>
-        <div className="feature card glass" style={{transitionDelay:'0.1s'}}>
-          <h3>Permissions</h3>
-          <p className="item-meta">Owners control access with simple requests and approvals.</p>
+        <div className="feature">
+          <h3>Version Snapshots</h3>
+          <p className="item-meta">
+            Save manual snapshots with custom logs and export to HTML, DOCX, or PDF.
+          </p>
         </div>
       </div>
     </div>
