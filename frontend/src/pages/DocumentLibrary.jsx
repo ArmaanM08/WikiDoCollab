@@ -102,25 +102,23 @@ export default function DocumentLibrary() {
           <div className="shape s3" />
         </div>
         <div className="lib-copy">
-          <h2 style={{ fontSize: '2.25rem', fontFamily: 'var(--font-serif)' }}>Workspace Library</h2>
-          <p className="item-meta">Create and collaborate on structured documents in real-time.</p>
+          <h2>Workspace Library</h2>
+          <p className="item-meta" style={{ fontSize: '0.9375rem' }}>Create and collaborate on structured documents in real-time.</p>
         </div>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2.5rem' }}>
-        <div className="tabs" style={{ maxWidth: '320px' }}>
-          <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
-            All Docs
+      <div className="tabs" style={{ display: 'inline-flex', marginBottom: '2rem' }}>
+        <button className={`tab ${tab === 'all' ? 'active' : ''}`} onClick={() => setTab('all')}>
+          All Docs
+        </button>
+        <button className={`tab ${tab === 'public' ? 'active' : ''}`} onClick={() => setTab('public')}>
+          Public
+        </button>
+        {user && (
+          <button className={`tab ${tab === 'private' ? 'active' : ''}`} onClick={() => setTab('private')}>
+            Private
           </button>
-          <button className={`tab ${tab === 'public' ? 'active' : ''}`} onClick={() => setTab('public')}>
-            Public
-          </button>
-          {user && (
-            <button className={`tab ${tab === 'private' ? 'active' : ''}`} onClick={() => setTab('private')}>
-              Private
-            </button>
-          )}
-        </div>
+        )}
       </div>
 
       {user ? (

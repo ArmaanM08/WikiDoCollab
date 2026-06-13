@@ -44,14 +44,14 @@ router.post('/login', async (req, res) => {
   let { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
   email = String(email).trim().toLowerCase();
-  const user = await User.findOne({ email });
+  const user = await User.findOne({ email }).select('_id email displayName roles createdAt');
   if (!user) return res.status(401).json({ error: 'User not found. Please sign up.' });
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
   const token = signAccess(user);
   const refresh = signRefresh(user);
   res.cookie('refresh_token', refresh, { httpOnly: true, sameSite: 'lax', secure: true });
-  return res.json({ token });
+  return res.json({ token, user });
 });
 
 // Return current user profile based on token

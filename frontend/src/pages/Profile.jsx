@@ -11,26 +11,28 @@ export default function Profile() {
   const [nameEdit, setNameEdit] = useState('');
   const [savingName, setSavingName] = useState(false);
   const [feedbackMsg, setFeedbackMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [reqsLoading, setReqsLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
     setNameEdit(user.displayName || '');
-    
-    // Fetch documents
+
+    // Load docs first – show the page as soon as docs arrive
     api.get('/api/documents')
       .then(res => {
-        const arr = Array.isArray(res.data) ? res.data : [];
-        setDocs(arr);
+        setDocs(Array.isArray(res.data) ? res.data : []);
       })
-      .catch(() => { setDocs([]); });
-    
-    // Fetch pending requests
+      .catch(() => setDocs([]))
+      .finally(() => setLoading(false));
+
+    // Load requests in background – doesn't block page render
     api.get('/api/requests')
       .then(res => {
-        const requests = Array.isArray(res.data) ? res.data : [];
-        setPending(requests);
+        setPending(Array.isArray(res.data) ? res.data : []);
       })
-      .catch(() => { setPending([]); });
+      .catch(() => setPending([]))
+      .finally(() => setReqsLoading(false));
   }, [user]);
 
   const decide = async (docId, userId, approve) => {
@@ -85,11 +87,37 @@ export default function Profile() {
   const myPrivateDocs = docs.filter(d => d.isPrivate);
   const myPublicDocs = docs.filter(d => !d.isPrivate);
 
+  if (loading) {
+    return (
+      <div className="profile fade-in">
+        <div className="profile-header">
+          <div className="back-btn" style={{ visibility: 'hidden' }}>Back</div>
+          <div />
+        </div>
+        <div className="grid-2 mt-32">
+          <div className="card glass" style={{ minHeight: '200px' }}>
+            <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
+            <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }} />
+            <div style={{ height: '1rem', width: '60%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+          </div>
+          <div className="card glass" style={{ minHeight: '200px' }}>
+            <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
+            <div style={{ height: '1rem', width: '50%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '0.75rem' }} />
+            <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="profile fade-in">
       <div className="profile-header">
-        <button className="btn btn-outline" onClick={() => navigate('/library')}>
-          ← Back to Library
+        <button className="back-btn" onClick={() => navigate('/library')}>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Library
         </button>
         <button className="btn btn-danger" onClick={() => { logout(); navigate('/'); }}>
           Logout

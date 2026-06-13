@@ -8,7 +8,9 @@ const router = express.Router();
 router.use(requireAuth);
 
 router.get('/', async (req, res) => {
-  const docs = await Document.find({ $or: [ { ownerId: req.user._id }, { collaboratorIds: req.user._id } ] }).sort({ updatedAt: -1 });
+  const docs = await Document.find({ $or: [ { ownerId: req.user._id }, { collaboratorIds: req.user._id } ] })
+    .select('title isPrivate ownerId collaboratorIds thumbnail createdAt updatedAt')
+    .sort({ updatedAt: -1 });
   res.json(docs);
 });
 

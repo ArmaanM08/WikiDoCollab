@@ -21,8 +21,11 @@ export default function VersionHistory() {
     <div style={{ maxWidth: '640px', margin: '2rem auto' }} className="fade-in">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h2 style={{ fontSize: '1.75rem', fontFamily: 'var(--font-serif)' }}>Version Commits</h2>
-        <button className="btn btn-outline" onClick={() => navigate(`/doc/${id}`)}>
-          ← Back to Editor
+        <button className="back-btn" onClick={() => navigate(`/doc/${id}`)}>
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back to Editor
         </button>
       </div>
 

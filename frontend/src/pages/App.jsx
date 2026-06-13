@@ -7,6 +7,7 @@ import VersionHistory from './VersionHistory.jsx';
 import Profile from './Profile.jsx';
 import Landing from './Landing.jsx';
 import { AuthProvider, useAuth } from '../auth.jsx';
+import { api } from '../api.js';
 
 function Nav() {
   const { user, logout } = useAuth();
@@ -75,6 +76,14 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  // Keep-alive ping: prevents Render.com free-tier from spinning down
+  useEffect(() => {
+    const ping = () => api.get('/api/health').catch(() => {});
+    const interval = setInterval(ping, 5 * 60 * 1000); // every 5 minutes
+    ping(); // initial ping on mount
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <AuthProvider>
       <Nav />

@@ -7,6 +7,7 @@ const router = express.Router();
 // Public listing: show non-private documents with owner and collaborators meta
 router.get('/documents', optionalAuth, async (req, res) => {
   const docs = await Document.find({ isPrivate: { $ne: true } })
+    .select('title isPrivate ownerId collaboratorIds thumbnail updatedAt')
     .sort({ updatedAt: -1 })
     .populate('ownerId', 'email displayName')
     .populate('collaboratorIds', 'email displayName');

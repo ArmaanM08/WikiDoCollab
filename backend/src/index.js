@@ -60,6 +60,9 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
+// Health check / keep-alive endpoint for Render.com free-tier instances
+app.get('/api/health', (_req, res) => res.json({ ok: true }));
+
 // REST routes
 app.use('/api/auth', authRouter);
 app.use('/api/documents', docRouter);

@@ -26,8 +26,8 @@ export default function Login() {
     try {
       if (mode === 'login') {
         const res = await api.post('/api/auth/login', { email, password });
-        const token = res.data.token;
-        await authLogin(token);
+        const { token, user: userData } = res.data;
+        await authLogin(token, userData);
         navigate('/library');
       } else {
         if (!displayName) {
