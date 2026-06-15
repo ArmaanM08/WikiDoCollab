@@ -76,6 +76,8 @@ function ProtectedRoute({ children }) {
 }
 
 export default function App() {
+  const location = useLocation();
+
   // Keep-alive ping: prevents Render.com free-tier from spinning down
   useEffect(() => {
     const ping = () => api.get('/api/health').catch(() => {});
@@ -84,10 +86,12 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const isEditorPage = location.pathname.startsWith('/doc/') && !location.pathname.endsWith('/versions');
+
   return (
     <AuthProvider>
       <Nav />
-      <main className="container">
+      <main className={isEditorPage ? "container container-wide" : "container"}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/library" element={<DocumentLibrary />} />

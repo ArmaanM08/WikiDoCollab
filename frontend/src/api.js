@@ -26,7 +26,12 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error.config || {};
-    if (error.response && error.response.status === 401 && !original.__isRetry) {
+    const isAuthRequest = original.url && (
+      original.url.includes('/api/auth/login') ||
+      original.url.includes('/api/auth/refresh') ||
+      original.url.includes('/api/auth/register')
+    );
+    if (error.response && error.response.status === 401 && !original.__isRetry && !isAuthRequest) {
       if (isRefreshing) {
         await new Promise((resolve) => pending.push(resolve));
       } else {

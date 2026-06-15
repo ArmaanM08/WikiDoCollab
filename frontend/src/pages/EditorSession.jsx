@@ -57,6 +57,9 @@ export default function EditorSession() {
   const [editorTheme, setEditorTheme] = useState(
     document.documentElement.getAttribute('data-theme') || 'light'
   );
+  const [metadata, setMetadata] = useState(null);
+  const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(true);
 
   const isProgrammaticUpdate = useRef(false);
   const editorInstanceRef = useRef(null);
@@ -71,11 +74,32 @@ export default function EditorSession() {
     return () => observer.disconnect();
   }, []);
 
-  // Fetch capabilities and document content
-  useEffect(() => {
+  const loadMetadata = () => {
     api.get(`/api/documents/${id}/capability`)
-      .then(res => setCanEdit(!!res.data?.canEdit))
-      .catch(() => setCanEdit(false));
+      .then(res => {
+        setCanEdit(!!res.data?.canEdit);
+        setMetadata(res.data);
+      })
+      .catch(() => {
+        setCanEdit(false);
+        setMetadata(null);
+      });
+  };
+
+  const loadVersions = () => {
+    setVersionsLoading(true);
+    api.get(`/api/documents/${id}/versions`)
+      .then(res => {
+        setVersions(Array.isArray(res.data) ? res.data : []);
+      })
+      .catch(() => setVersions([]))
+      .finally(() => setVersionsLoading(false));
+  };
+
+  // Fetch capabilities, metadata, commits and document content
+  useEffect(() => {
+    loadMetadata();
+    loadVersions();
 
     api.get(`/api/documents/${id}/content`)
       .then(res => {
@@ -161,6 +185,7 @@ export default function EditorSession() {
       
       setSaveMsg('');
       setFeedback('Document and thumbnail saved successfully!');
+      loadVersions();
       setTimeout(() => setFeedback(''), 4000);
     } catch (e) {
       setFeedback('Failed to save document.');
@@ -195,7 +220,10 @@ export default function EditorSession() {
           </svg>
           Back to Library
         </button>
-        <h2>Editor Session</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: 0, fontSize: '1.5rem', fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>
+          <span>{metadata?.title || 'Editor Session'}</span>
+          {metadata?.isPrivate && <span className="badge" style={{ background: 'var(--accent)' }}>Private</span>}
+        </h2>
         
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
           <span className={`status-badge ${connected ? 'online' : 'offline'}`}>
@@ -205,40 +233,129 @@ export default function EditorSession() {
         </div>
       </div>
 
-      {initialContent === 'loading' ? (
-        <div className="card glass" style={{ minHeight: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--text-muted)' }}>Loading rich text editor workspace…</p>
-        </div>
-      ) : (
-        <RichTextEditor 
-          initialContent={initialContent} 
-          onChange={handleEditorChange} 
-          readOnly={!canEdit} 
-          editorInstanceRef={editorInstanceRef}
-          theme={editorTheme}
-        />
-      )}
+      <div className="editor-grid">
+        {/* Left Column: Owner, Collaborators, Commit History */}
+        <div className="editor-left-col">
+          <div className="card glass" style={{ padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.05rem', marginBottom: '0.75rem', fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Access & Collaborators</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div>
+                <span className="item-meta" style={{ fontSize: '0.75rem', fontWeight: '500' }}>Document Owner</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.25rem' }}>
+                  <div className="collab-user-avatar" style={{ background: 'var(--primary)', color: 'var(--bg)' }}>
+                    {(metadata?.owner?.displayName || metadata?.owner?.email || 'U').charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: '0.875rem', fontWeight: '600' }}>
+                    {metadata?.owner?.displayName || metadata?.owner?.email || 'Loading...'}
+                  </span>
+                </div>
+              </div>
 
-      <div className="mt-24 flex gap-12 align-center" style={{ flexWrap: 'wrap' }}>
-        {canEdit && (
-          <div style={{ display: 'flex', gap: '0.75rem', flex: 1, minWidth: '300px' }}>
-            <input
-              className="input"
-              placeholder="Commit message (optional)"
-              value={saveMsg}
-              onChange={e => setSaveMsg(e.target.value)}
-              style={{ flex: 1 }}
-              disabled={saving}
-            />
-            <button className="btn btn-primary" onClick={saveDocument} disabled={saving}>
-              {saving ? 'Saving Commit…' : 'Save Commit'}
-            </button>
+              <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '0.75rem' }}>
+                <span className="item-meta" style={{ fontSize: '0.75rem', fontWeight: '500' }}>Collaborators ({metadata?.collaborators?.length || 0})</span>
+                {metadata?.collaborators && metadata.collaborators.length > 0 ? (
+                  <div className="collab-badge-list">
+                    {metadata.collaborators.map(c => {
+                      const name = c.displayName || c.email;
+                      const initial = name.charAt(0).toUpperCase();
+                      return (
+                        <div key={c._id} className="collab-user-badge" title={c.email}>
+                          <div className="collab-user-avatar">{initial}</div>
+                          <span style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', maxWidth: '100px' }}>
+                            {c.displayName || c.email.split('@')[0]}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="item-meta" style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>No collaborators yet.</p>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button className="btn btn-outline" onClick={() => download('pdf')}>Download PDF</button>
-          <button className="btn btn-outline" onClick={() => download('docx')}>Download DOCX</button>
-          <button className="btn btn-outline" onClick={() => download('html')}>Download HTML</button>
+
+          <div className="card glass" style={{ padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.05rem', marginBottom: '0.75rem', fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Version History</h3>
+            {versionsLoading ? (
+              <p className="item-meta" style={{ fontStyle: 'italic' }}>Loading commit timeline...</p>
+            ) : versions.length === 0 ? (
+              <p className="item-meta" style={{ fontStyle: 'italic' }}>No version commits found.</p>
+            ) : (
+              <div className="editor-commit-history">
+                <ul className="timeline-mini">
+                  {versions.map(v => (
+                    <li key={v._id} className="timeline-mini-item">
+                      <div className="timeline-mini-msg">{v.message || 'Saved snapshot'}</div>
+                      <div className="timeline-mini-meta">
+                        {v.authorId?.displayName || v.authorId?.email || 'System'} · {new Date(v.createdAt).toLocaleDateString()}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Center Column: Editor */}
+        <div className="editor-main-col">
+          {initialContent === 'loading' ? (
+            <div className="card glass" style={{ minHeight: '650px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ color: 'var(--text-muted)' }}>Loading rich text editor workspace…</p>
+            </div>
+          ) : (
+            <RichTextEditor 
+              initialContent={initialContent} 
+              onChange={handleEditorChange} 
+              readOnly={!canEdit} 
+              editorInstanceRef={editorInstanceRef}
+              theme={editorTheme}
+            />
+          )}
+        </div>
+
+        {/* Right Column: Commit Save Input & Actions */}
+        <div className="editor-right-col">
+          {canEdit && (
+            <div className="card glass" style={{ padding: '1.25rem' }}>
+              <h3 style={{ fontSize: '1.05rem', marginBottom: '0.5rem', fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Commit Changes</h3>
+              <p className="item-meta" style={{ marginBottom: '1rem', lineHeight: '1.4' }}>
+                Write an optional message and commit to save a new milestone to history.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <textarea
+                  className="input"
+                  placeholder="Describe your edits (optional)..."
+                  value={saveMsg}
+                  onChange={e => setSaveMsg(e.target.value)}
+                  style={{ minHeight: '90px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.875rem' }}
+                  disabled={saving}
+                />
+                <button className="btn btn-primary" onClick={saveDocument} disabled={saving} style={{ width: '100%' }}>
+                  {saving ? 'Committing Snapshot...' : 'Commit Version'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="card glass" style={{ padding: '1.25rem' }}>
+            <h3 style={{ fontSize: '1.05rem', marginBottom: '0.5rem', fontFamily: 'var(--font-serif)', color: 'var(--text)' }}>Exports</h3>
+            <p className="item-meta" style={{ marginBottom: '1rem', lineHeight: '1.4' }}>
+              Export this document to the following formats:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <button className="btn btn-outline" onClick={() => download('pdf')} style={{ width: '100%', justifyContent: 'center' }}>
+                Download PDF
+              </button>
+              <button className="btn btn-outline" onClick={() => download('docx')} style={{ width: '100%', justifyContent: 'center' }}>
+                Download DOCX
+              </button>
+              <button className="btn btn-outline" onClick={() => download('html')} style={{ width: '100%', justifyContent: 'center' }}>
+                Download HTML
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -246,8 +363,9 @@ export default function EditorSession() {
         <div style={{ 
           fontSize: '0.875rem', 
           color: feedback.includes('success') ? 'var(--success)' : 'var(--danger)',
-          marginTop: '1.25rem',
-          fontWeight: '600'
+          marginTop: '1.5rem',
+          fontWeight: '600',
+          textAlign: 'center'
         }}>
           {feedback}
         </div>

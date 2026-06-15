@@ -17,47 +17,10 @@ import Document from './models/Document.js';
 
 const app = express();
 const server = http.createServer(app);
-// Allow local dev and Vercel deployments; be permissive in development to avoid
-// CORS issues with engine.io polling endpoints during local testing.
-const allowedOrigins = [
-  'http://localhost:5173',
-  'https://my-project-git-main-armaan-mulanis-projects.vercel.app',
-  'https://my-project-wikidocollab.vercel.app'
-];
 
-const isDev = process.env.NODE_ENV !== 'production';
-
-const corsOptions = isDev ? {
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-} : {
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(new Error('Not allowed by CORS'));
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Socket.IO CORS: in dev allow all origins (helps with polling preflight). In
-// production restrict to the allowedOrigins list.
-const io = new SocketIOServer(server, {
-  cors: isDev ? {
-    origin: '*',
-    methods: ['GET', 'POST', 'OPTIONS']
-  } : {
-    origin: allowedOrigins,
-    methods: ['GET', 'POST', 'OPTIONS'],
-    credentials: true
-  }
-});
-
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+// CORS — allow every origin, no exceptions
+app.use(cors({ origin: true, credentials: true }));
+app.options('*', cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 // Health check / keep-alive endpoint for Render.com free-tier instances
@@ -78,6 +41,11 @@ mongoose.connect(mongoUri).then(() => {
   console.log('MongoDB connected');
 }).catch(err => {
   console.error('MongoDB connection error', err);
+});
+
+// Socket.IO
+const io = new SocketIOServer(server, {
+  cors: { origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }
 });
 
 // Real-time collaboration namespace

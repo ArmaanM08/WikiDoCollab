@@ -22,7 +22,7 @@ npm install
 MONGODB_URI=mongodb://localhost:27017/wikidocollab
 JWT_SECRET=replace_with_a_long_secret
 JWT_REFRESH_SECRET=replace_with_a_different_secret
-PORT=5000
+PORT=5112
 ```
 
 3. Start the backend in dev mode (hot-reloads):
@@ -61,7 +61,7 @@ Open `http://localhost:5173` in your browser.
 Register a user via the API (replace email/password as needed):
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/register \
+curl -X POST http://localhost:5112/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password","displayName":"Test User"}'
 ```
@@ -69,7 +69,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 Login to obtain an access token:
 
 ```bash
-curl -X POST http://localhost:5000/api/auth/login \
+curl -X POST http://localhost:5112/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"test@example.com","password":"password"}'
 ```

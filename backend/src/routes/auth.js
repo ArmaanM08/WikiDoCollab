@@ -41,20 +41,28 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
-  let { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
-  email = String(email).trim().toLowerCase();
-  const user = await User.findOne({ email }).select('_id email displayName roles createdAt');
-  if (!user) return res.status(401).json({ error: 'User not found. Please sign up.' });
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-  const token = signAccess(user);
-  const refresh = signRefresh(user);
-  res.cookie('refresh_token', refresh, { httpOnly: true, sameSite: 'lax', secure: true });
-  return res.json({ token, user });
+  try {
+    let { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ error: 'Missing fields' });
+    email = String(email).trim().toLowerCase();
+    // Do NOT use .select() here — we need passwordHash for bcrypt.compare
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ error: 'User not found. Please sign up.' });
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    const token = signAccess(user);
+    const refresh = signRefresh(user);
+    res.cookie('refresh_token', refresh, { httpOnly: true, sameSite: 'lax', secure: true });
+    return res.json({
+      token,
+      user: { _id: user._id, email: user.email, displayName: user.displayName, roles: user.roles, createdAt: user.createdAt }
+    });
+  } catch (err) {
+    console.error('Login error:', err);
+    return res.status(500).json({ error: 'Login failed' });
+  }
 });
 
-// Return current user profile based on token
 router.get('/me', async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
@@ -69,7 +77,6 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// Issue a new access token using refresh cookie (session cookie clears when browser is closed)
 router.post('/refresh', async (req, res) => {
   try {
     const rt = getCookie(req, 'refresh_token');
@@ -89,7 +96,6 @@ router.post('/logout', (_req, res) => {
   return res.json({ ok: true });
 });
 
-// Update profile (displayName)
 router.patch('/profile', async (req, res) => {
   try {
     const authHeader = req.headers.authorization || '';
