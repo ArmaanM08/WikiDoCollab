@@ -48,14 +48,44 @@ const io = new SocketIOServer(server, {
   cors: { origin: '*', methods: ['GET', 'POST', 'OPTIONS'] }
 });
 
+const activeUsers = {}; // docId -> array of { socketId, _id, email, displayName }
+const activeSavers = {}; // docId -> { socketId, username }
+
 // Real-time collaboration namespace
 io.use(authenticateSocket);
 io.on('connection', (socket) => {
   // Simple room join; docId identifies collaborative session
-  socket.on('join-document', async ({ docId }) => {
+  socket.on('join-document', async ({ docId, user: clientUser }) => {
     if (!docId) return;
+    
+    // Attach document context to the socket for cleanup on disconnect
+    socket.docId = docId;
+    socket.userData = clientUser || { _id: socket.user?._id, email: socket.user?.email, displayName: '' };
+    
     socket.join(docId);
-    socket.to(docId).emit('presence', { userId: socket.user?._id, joined: true });
+    
+    if (!activeUsers[docId]) {
+      activeUsers[docId] = [];
+    }
+    
+    // Add socket connection if not already present
+    if (!activeUsers[docId].some(u => u.socketId === socket.id)) {
+      activeUsers[docId].push({
+        socketId: socket.id,
+        _id: socket.userData._id,
+        email: socket.userData.email,
+        displayName: socket.userData.displayName || socket.userData.email?.split('@')[0] || 'Anonymous'
+      });
+    }
+    
+    // Broadcast active users to everyone in the room
+    io.to(docId).emit('active-users', activeUsers[docId]);
+    
+    // If there's an active saver, let the joining client know
+    if (activeSavers[docId]) {
+      socket.emit('save-locked', { username: activeSavers[docId].username });
+    }
+    
     try {
       const doc = await Document.findById(docId).select('content isPrivate ownerId collaboratorIds');
       // Send current content to the joining client (read-only clients can still view if not private)
@@ -81,8 +111,44 @@ io.on('connection', (socket) => {
     }
   });
 
+  // Handle start of commit/save operation
+  socket.on('start-save', ({ username }) => {
+    const docId = socket.docId;
+    if (docId) {
+      activeSavers[docId] = { socketId: socket.id, username };
+      socket.to(docId).emit('save-locked', { username });
+    }
+  });
+
+  // Handle end of commit/save operation
+  socket.on('end-save', () => {
+    const docId = socket.docId;
+    if (docId && activeSavers[docId]?.socketId === socket.id) {
+      delete activeSavers[docId];
+      io.to(docId).emit('save-unlocked');
+    }
+  });
+
   socket.on('disconnect', () => {
-    // minimal presence signal
+    const docId = socket.docId;
+    
+    // Clear save lock if this socket held it
+    if (docId && activeSavers[docId]?.socketId === socket.id) {
+      delete activeSavers[docId];
+      io.to(docId).emit('save-unlocked');
+    }
+    
+    if (docId && activeUsers[docId]) {
+      // Remove connection
+      activeUsers[docId] = activeUsers[docId].filter(u => u.socketId !== socket.id);
+      
+      // Clean up room if empty, otherwise broadcast updated list
+      if (activeUsers[docId].length === 0) {
+        delete activeUsers[docId];
+      } else {
+        io.to(docId).emit('active-users', activeUsers[docId]);
+      }
+    }
   });
 });
 

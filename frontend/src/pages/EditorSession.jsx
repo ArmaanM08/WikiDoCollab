@@ -11,6 +11,45 @@ import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
+function reconcileBlocks(editor, incomingBlocks) {
+  try {
+    const currentBlocks = editor.document;
+    const currentMap = new Map(currentBlocks.map(b => [b.id, b]));
+    const incomingMap = new Map(incomingBlocks.map(b => [b.id, b]));
+
+    // 1. Remove blocks that no longer exist
+    const blocksToRemove = currentBlocks.filter(b => !incomingMap.has(b.id));
+    if (blocksToRemove.length > 0) {
+      editor.removeBlocks(blocksToRemove.map(b => b.id));
+    }
+
+    // 2. Insert or update blocks in place
+    incomingBlocks.forEach((incBlock, index) => {
+      const currBlock = currentMap.get(incBlock.id);
+      if (!currBlock) {
+        if (index === 0) {
+          editor.insertBlocks([incBlock], editor.document[0]?.id, 'before');
+        } else {
+          editor.insertBlocks([incBlock], incomingBlocks[index - 1].id, 'after');
+        }
+      } else {
+        // Only update if properties or content changed to prevent cursor jumps
+        if (JSON.stringify(currBlock) !== JSON.stringify(incBlock)) {
+          editor.updateBlock(incBlock.id, {
+            type: incBlock.type,
+            content: incBlock.content,
+            props: incBlock.props,
+          });
+        }
+      }
+    });
+  } catch (err) {
+    console.error("Block reconciliation failed:", err);
+    // Fallback: replace everything if patch fails
+    editor.replaceBlocks(editor.document, incomingBlocks);
+  }
+}
+
 function RichTextEditor({ initialContent, onChange, readOnly, editorInstanceRef, theme }) {
   const editor = useCreateBlockNote({
     initialContent: initialContent || undefined
@@ -60,6 +99,11 @@ export default function EditorSession() {
   const [metadata, setMetadata] = useState(null);
   const [versions, setVersions] = useState([]);
   const [versionsLoading, setVersionsLoading] = useState(true);
+  const [activeUsers, setActiveUsers] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviting, setInviting] = useState(false);
+  const [inviteFeedback, setInviteFeedback] = useState('');
+  const [saverName, setSaverName] = useState(null);
 
   const isProgrammaticUpdate = useRef(false);
   const editorInstanceRef = useRef(null);
@@ -131,7 +175,33 @@ export default function EditorSession() {
 
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
-    socket.emit('join-document', { docId: id });
+    
+    if (user) {
+      socket.emit('join-document', { 
+        docId: id, 
+        user: { 
+          _id: user._id, 
+          email: user.email, 
+          displayName: user.displayName 
+        } 
+      });
+    } else {
+      socket.emit('join-document', { docId: id });
+    }
+
+    // Handle active users list broadcast
+    socket.on('active-users', (users) => {
+      setActiveUsers(users || []);
+    });
+
+    // Handle save locking
+    socket.on('save-locked', ({ username }) => {
+      setSaverName(username);
+    });
+
+    socket.on('save-unlocked', () => {
+      setSaverName(null);
+    });
 
     // Handle incoming content updates from other users
     socket.on('doc-content', ({ content }) => {
@@ -141,7 +211,7 @@ export default function EditorSession() {
           const currentJson = JSON.stringify(editorInstanceRef.current.document);
           if (content !== currentJson) {
             isProgrammaticUpdate.current = true;
-            editorInstanceRef.current.replaceBlocks(editorInstanceRef.current.document, newBlocks);
+            reconcileBlocks(editorInstanceRef.current, newBlocks);
             isProgrammaticUpdate.current = false;
             setLatestContent(content);
           }
@@ -152,7 +222,7 @@ export default function EditorSession() {
     });
 
     return () => socket.disconnect();
-  }, [id]);
+  }, [id, user]);
 
   // Handle local changes from the BlockNote editor
   const handleEditorChange = (editor) => {
@@ -166,6 +236,7 @@ export default function EditorSession() {
     if (!latestContent) return;
     setSaving(true);
     setFeedback('');
+    socketRef.current?.emit('start-save', { username: user?.displayName || user?.email || 'Anonymous' });
     try {
       // Generate base64 thumbnail of the document canvas
       const thumbnailData = await generateThumbnail(latestContent);
@@ -192,6 +263,33 @@ export default function EditorSession() {
       setTimeout(() => setFeedback(''), 4000);
     } finally {
       setSaving(false);
+      socketRef.current?.emit('end-save');
+    }
+  };
+
+  const inviteCollaborator = async (e) => {
+    e.preventDefault();
+    if (!inviteEmail.trim()) return;
+    setInviting(true);
+    setInviteFeedback('');
+    try {
+      const res = await api.post(`/api/documents/${id}/invite`, { email: inviteEmail.trim() });
+      if (res.data?.success) {
+        setInviteEmail('');
+        setInviteFeedback('Collaborator added successfully!');
+        if (res.data.collaborator) {
+          setMetadata(prev => ({
+            ...prev,
+            collaborators: [...(prev?.collaborators || []), res.data.collaborator]
+          }));
+        }
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.error || 'Failed to invite collaborator.';
+      setInviteFeedback(errMsg);
+    } finally {
+      setInviting(false);
+      setTimeout(() => setInviteFeedback(''), 5000);
     }
   };
 
@@ -226,6 +324,38 @@ export default function EditorSession() {
         </h2>
         
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          {activeUsers.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', marginRight: '0.5rem' }}>
+              {activeUsers.map((u, i) => {
+                const initials = (u.displayName || u.email || 'A').charAt(0).toUpperCase();
+                return (
+                  <div 
+                    key={u.socketId} 
+                    title={`${u.displayName || u.email} (Active)`}
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      background: i % 2 === 0 ? 'var(--accent)' : 'var(--primary)',
+                      color: i % 2 === 0 ? 'white' : 'var(--bg)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '0.75rem',
+                      fontWeight: 'bold',
+                      border: '2px solid var(--bg)',
+                      marginLeft: i > 0 ? '-8px' : '0',
+                      zIndex: activeUsers.length - i,
+                      boxShadow: 'var(--shadow-sm)',
+                      cursor: 'default'
+                    }}
+                  >
+                    {initials}
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <span className={`status-badge ${connected ? 'online' : 'offline'}`}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: 'currentColor' }} />
             {connected ? 'Syncing Live' : 'Offline'}
@@ -272,6 +402,38 @@ export default function EditorSession() {
                   <p className="item-meta" style={{ fontStyle: 'italic', marginTop: '0.25rem' }}>No collaborators yet.</p>
                 )}
               </div>
+
+              {/* Direct Invite Form (Only for Owner) */}
+              {user && metadata?.owner?._id === user._id && (
+                <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1rem', marginTop: '0.5rem' }}>
+                  <span className="item-meta" style={{ fontSize: '0.75rem', fontWeight: '500' }}>Invite Collaborator</span>
+                  <form onSubmit={inviteCollaborator} style={{ display: 'flex', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <input
+                      type="email"
+                      className="input"
+                      placeholder="Collaborator email..."
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      style={{ flex: 1, padding: '0.375rem 0.625rem', fontSize: '0.8125rem' }}
+                      disabled={inviting}
+                      required
+                    />
+                    <button type="submit" className="btn btn-primary" style={{ padding: '0.375rem 0.75rem', fontSize: '0.8125rem' }} disabled={inviting || !inviteEmail.trim()}>
+                      {inviting ? '...' : 'Invite'}
+                    </button>
+                  </form>
+                  {inviteFeedback && (
+                    <div style={{
+                      fontSize: '0.75rem',
+                      marginTop: '0.5rem',
+                      color: inviteFeedback.includes('successfully') ? 'var(--success)' : 'var(--danger)',
+                      fontWeight: '600'
+                    }}>
+                      {inviteFeedback}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -323,6 +485,23 @@ export default function EditorSession() {
               <p className="item-meta" style={{ marginBottom: '1rem', lineHeight: '1.4' }}>
                 Write an optional message and commit to save a new milestone to history.
               </p>
+              
+              {saverName && (
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--warning)',
+                  background: 'rgba(198, 149, 82, 0.1)',
+                  border: '1px solid var(--warning)',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '0.5rem 0.75rem',
+                  marginBottom: '1rem',
+                  fontWeight: '500',
+                  lineHeight: '1.3'
+                }}>
+                  Saving Locked: <strong>{saverName}</strong> is currently committing a version...
+                </div>
+              )}
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <textarea
                   className="input"
@@ -330,10 +509,15 @@ export default function EditorSession() {
                   value={saveMsg}
                   onChange={e => setSaveMsg(e.target.value)}
                   style={{ minHeight: '90px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.875rem' }}
-                  disabled={saving}
+                  disabled={saving || !!saverName}
                 />
-                <button className="btn btn-primary" onClick={saveDocument} disabled={saving} style={{ width: '100%' }}>
-                  {saving ? 'Committing Snapshot...' : 'Commit Version'}
+                <button 
+                  className="btn btn-primary" 
+                  onClick={saveDocument} 
+                  disabled={saving || !!saverName} 
+                  style={{ width: '100%' }}
+                >
+                  {saving ? 'Committing Snapshot...' : (saverName ? 'Locked by Saver' : 'Commit Version')}
                 </button>
               </div>
             </div>

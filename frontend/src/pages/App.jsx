@@ -86,12 +86,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, []);
 
+  const isLandingPage = location.pathname === '/';
   const isEditorPage = location.pathname.startsWith('/doc/') && !location.pathname.endsWith('/versions');
+
+  let mainClass = "container";
+  if (isLandingPage) {
+    mainClass = "main-fullwidth";
+  } else if (isEditorPage) {
+    mainClass = "container container-wide";
+  }
 
   return (
     <AuthProvider>
       <Nav />
-      <main className={isEditorPage ? "container container-wide" : "container"}>
+      <main className={mainClass}>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/library" element={<DocumentLibrary />} />

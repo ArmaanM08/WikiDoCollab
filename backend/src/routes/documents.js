@@ -2,6 +2,7 @@ import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
 import Document from '../models/Document.js';
 import Version from '../models/Version.js';
+import User from '../models/User.js';
 
 const router = express.Router();
 
@@ -112,6 +113,68 @@ router.post('/:id/approve', async (req, res) => {
     res.json({ status: approve ? 'approved' : 'rejected' });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to process request' });
+  }
+});
+
+router.post('/:id/invite', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email is required' });
+    
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ error: 'Document not found' });
+    
+    // Only the owner can invite collaborators
+    if (doc.ownerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Only the document owner can invite collaborators' });
+    }
+    
+    // Find the user to invite
+    const inviteeEmail = String(email).trim().toLowerCase();
+    const invitee = await User.findOne({ email: inviteeEmail });
+    if (!invitee) {
+      return res.status(404).json({ error: 'User with this email was not found. They must register first.' });
+    }
+    
+    const inviteeIdStr = invitee._id.toString();
+    
+    // Cannot invite yourself (the owner)
+    if (inviteeIdStr === req.user._id.toString()) {
+      return res.status(400).json({ error: 'You are the owner of this document.' });
+    }
+    
+    // Check if already a collaborator
+    const isAlreadyCollab = (doc.collaboratorIds || []).some(id => id.toString() === inviteeIdStr);
+    if (isAlreadyCollab) {
+      return res.status(400).json({ error: 'User is already a collaborator.' });
+    }
+    
+    // Grant access
+    doc.collaboratorIds = doc.collaboratorIds || [];
+    doc.collaboratorIds.push(invitee._id);
+    
+    // If they have a pending request, auto-approve it
+    const reqIndex = (doc.collaborationRequests || []).findIndex(
+      r => r.userId?.toString() === inviteeIdStr && r.status === 'pending'
+    );
+    if (reqIndex !== -1) {
+      doc.collaborationRequests[reqIndex].status = 'approved';
+    }
+    
+    await doc.save();
+    
+    return res.json({
+      success: true,
+      message: 'Collaborator added successfully!',
+      collaborator: {
+        _id: invitee._id,
+        displayName: invitee.displayName,
+        email: invitee.email
+      }
+    });
+  } catch (err) {
+    console.error('Invite collaborator error:', err);
+    return res.status(500).json({ error: 'Failed to invite collaborator' });
   }
 });
 

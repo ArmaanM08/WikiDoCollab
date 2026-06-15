@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import Particles from './Particles.jsx';
+import SplitText from './SplitText.jsx';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -22,18 +24,39 @@ export default function Landing() {
   };
 
   return (
-    <div className="landing fade-in">
-      <button className="theme-toggle-landing btn btn-outline" onClick={toggleTheme}>
+    <div className="landing fade-in" style={{ position: 'relative' }}>
+      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+        <Particles
+          particleColors={theme === 'dark' ? ["#DDA08E", "#B26A54", "#ffffff"] : ["#B26A54", "#38293F", "#191919"]}
+          particleCount={750}
+          particleSpread={12}
+          speed={0.15}
+          particleBaseSize={240}
+          moveParticlesOnHover={true}
+          alphaParticles={true}
+          disableRotation={false}
+        />
+      </div>
+
+      <button className="theme-toggle-landing btn btn-outline" onClick={toggleTheme} style={{ zIndex: 10 }}>
         {theme === 'dark' ? 'Light' : 'Dark'}
       </button>
 
-      <div className="hero">
-        <div className="video-background">
-          <video autoPlay muted loop playsInline>
-            <source src="/Background.mp4" type="video/mp4" />
-            <source src="/Background.webm" type="video/webm" />
-          </video>
-        </div>
+      <div className="hero" style={{ zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <SplitText
+          text="WikiDoCollab"
+          className="hero-brand-title"
+          delay={80}
+          duration={0.8}
+          ease="power3.out"
+          splitType="chars"
+          from={{ opacity: 0, y: 30 }}
+          to={{ opacity: 1, y: 0 }}
+          textAlign="center"
+          tag="h1"
+          loop={true}
+          loopDelay={4}
+        />
 
         <div className="hero-content card glass slide-up">
           <h1 className="hero-title">Collaborate.<br />Create. Commit.</h1>
