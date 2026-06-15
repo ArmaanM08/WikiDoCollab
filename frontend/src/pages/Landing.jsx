@@ -8,12 +8,21 @@ export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [theme, setTheme] = useState('dark');
+  const [bgDisabled, setBgDisabled] = useState(() => localStorage.getItem('disableBgAnimation') === 'true');
 
   useEffect(() => {
     const saved = localStorage.getItem('theme');
     const initial = saved || 'dark';
     setTheme(initial);
     document.documentElement.setAttribute('data-theme', initial);
+  }, []);
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setBgDisabled(localStorage.getItem('disableBgAnimation') === 'true');
+    };
+    window.addEventListener('bgAnimationToggled', handleToggle);
+    return () => window.removeEventListener('bgAnimationToggled', handleToggle);
   }, []);
 
   const toggleTheme = () => {
@@ -25,18 +34,20 @@ export default function Landing() {
 
   return (
     <div className="landing fade-in" style={{ position: 'relative' }}>
-      <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
-        <Particles
-          particleColors={theme === 'dark' ? ["#DDA08E", "#B26A54", "#ffffff"] : ["#B26A54", "#38293F", "#191919"]}
-          particleCount={750}
-          particleSpread={12}
-          speed={0.15}
-          particleBaseSize={240}
-          moveParticlesOnHover={true}
-          alphaParticles={true}
-          disableRotation={false}
-        />
-      </div>
+      {!bgDisabled && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <Particles
+            particleColors={theme === 'dark' ? ["#DDA08E", "#B26A54", "#ffffff"] : ["#B26A54", "#38293F", "#191919"]}
+            particleCount={750}
+            particleSpread={12}
+            speed={0.15}
+            particleBaseSize={240}
+            moveParticlesOnHover={true}
+            alphaParticles={true}
+            disableRotation={false}
+          />
+        </div>
+      )}
 
       <button className="theme-toggle-landing btn btn-outline" onClick={toggleTheme} style={{ zIndex: 10 }}>
         {theme === 'dark' ? 'Light' : 'Dark'}

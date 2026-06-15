@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
 import { Link } from 'react-router-dom';
 import { generateThumbnail } from '../utils/thumbnailGenerator.js';
+import PixelSnow from './PixelSnow.jsx';
 
 export default function DocumentLibrary() {
   const [docs, setDocs] = useState([]);
@@ -14,6 +15,37 @@ export default function DocumentLibrary() {
   const [feedback, setFeedback] = useState({});
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useAuth();
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(currentTheme);
+
+    const observer = new MutationObserver(() => {
+      const updatedTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      setTheme(updatedTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = theme === 'dark';
+  const snowColor = isDark ? '#ffffff' : '#38293F';
+
+  const [bgDisabled, setBgDisabled] = useState(() => localStorage.getItem('disableBgAnimation') === 'true');
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setBgDisabled(localStorage.getItem('disableBgAnimation') === 'true');
+    };
+    window.addEventListener('bgAnimationToggled', handleToggle);
+    return () => window.removeEventListener('bgAnimationToggled', handleToggle);
+  }, []);
 
   const loadDocuments = () => {
     api
@@ -103,7 +135,24 @@ export default function DocumentLibrary() {
   };
 
   return (
-    <div className="library fade-in">
+    <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)', width: '100%' }}>
+      {!bgDisabled && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <PixelSnow
+            color={snowColor}
+            flakeSize={0.01}
+            minFlakeSize={1.25}
+            pixelResolution={180}
+            speed={1.0}
+            density={0.15}
+            direction={125}
+            brightness={1}
+            variant="snowflake"
+          />
+        </div>
+      )}
+
+      <div className="container library fade-in" style={{ position: 'relative', zIndex: 1 }}>
       <div className="lib-hero glass">
         <div className="lib-art" aria-hidden="true">
           <div className="shape s1" />
@@ -265,5 +314,6 @@ export default function DocumentLibrary() {
         </div>
       )}
     </div>
+  </div>
   );
 }

@@ -87,10 +87,13 @@ export default function App() {
   }, []);
 
   const isLandingPage = location.pathname === '/';
+  const isLoginPage = location.pathname === '/login';
+  const isLibraryPage = location.pathname === '/library';
+  const isProfilePage = location.pathname === '/profile';
   const isEditorPage = location.pathname.startsWith('/doc/') && !location.pathname.endsWith('/versions');
 
   let mainClass = "container";
-  if (isLandingPage) {
+  if (isLandingPage || isLoginPage || isLibraryPage || isProfilePage) {
     mainClass = "main-fullwidth";
   } else if (isEditorPage) {
     mainClass = "container container-wide";

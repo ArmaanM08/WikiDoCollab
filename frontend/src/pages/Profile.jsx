@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../auth.jsx';
+import PixelSnow from './PixelSnow.jsx';
 
 export default function Profile() {
   const { user, setUser, logout } = useAuth();
@@ -13,6 +14,44 @@ export default function Profile() {
   const [feedbackMsg, setFeedbackMsg] = useState('');
   const [loading, setLoading] = useState(true);
   const [reqsLoading, setReqsLoading] = useState(true);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    setTheme(currentTheme);
+
+    const observer = new MutationObserver(() => {
+      const updatedTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      setTheme(updatedTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  const isDark = theme === 'dark';
+  const snowColor = isDark ? '#ffffff' : '#38293F';
+
+  const [bgDisabled, setBgDisabled] = useState(() => localStorage.getItem('disableBgAnimation') === 'true');
+
+  useEffect(() => {
+    const handleToggle = () => {
+      setBgDisabled(localStorage.getItem('disableBgAnimation') === 'true');
+    };
+    window.addEventListener('bgAnimationToggled', handleToggle);
+    return () => window.removeEventListener('bgAnimationToggled', handleToggle);
+  }, []);
+
+  const toggleBgAnimation = () => {
+    const next = !bgDisabled;
+    setBgDisabled(next);
+    localStorage.setItem('disableBgAnimation', String(next));
+    window.dispatchEvent(new Event('bgAnimationToggled'));
+  };
 
   useEffect(() => {
     if (!user) { setLoading(false); return; }
@@ -75,10 +114,17 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <div style={{ maxWidth: '480px', margin: '4rem auto', textAlign: 'center' }}>
-        <div className="card glass">
-          <p style={{ marginBottom: '1.5rem' }}>Please log in to access your profile.</p>
-          <button className="btn btn-primary" onClick={() => navigate('/login')}>Log In</button>
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)', width: '100%' }}>
+        {!bgDisabled && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+            <PixelSnow color={snowColor} flakeSize={0.01} minFlakeSize={1.25} pixelResolution={180} speed={1.0} density={0.175} direction={125} brightness={1} variant="snowflake" />
+          </div>
+        )}
+        <div className="container" style={{ maxWidth: '480px', margin: '4rem auto', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+          <div className="card glass">
+            <p style={{ marginBottom: '1.5rem' }}>Please log in to access your profile.</p>
+            <button className="btn btn-primary" onClick={() => navigate('/login')}>Log In</button>
+          </div>
         </div>
       </div>
     );
@@ -89,21 +135,28 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="profile fade-in">
-        <div className="profile-header">
-          <div className="back-btn" style={{ visibility: 'hidden' }}>Back</div>
-          <div />
-        </div>
-        <div className="grid-2 mt-32">
-          <div className="card glass" style={{ minHeight: '200px' }}>
-            <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
-            <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }} />
-            <div style={{ height: '1rem', width: '60%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+      <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)', width: '100%' }}>
+        {!bgDisabled && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+            <PixelSnow color={snowColor} flakeSize={0.01} minFlakeSize={1.25} pixelResolution={180} speed={1.0} density={0.175} direction={125} brightness={1} variant="snowflake" />
           </div>
-          <div className="card glass" style={{ minHeight: '200px' }}>
-            <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
-            <div style={{ height: '1rem', width: '50%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '0.75rem' }} />
-            <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+        )}
+        <div className="container profile fade-in" style={{ position: 'relative', zIndex: 1 }}>
+          <div className="profile-header">
+            <div className="back-btn" style={{ visibility: 'hidden' }}>Back</div>
+            <div />
+          </div>
+          <div className="grid-2 mt-32">
+            <div className="card glass" style={{ minHeight: '200px' }}>
+              <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
+              <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1rem' }} />
+              <div style={{ height: '1rem', width: '60%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+            </div>
+            <div className="card glass" style={{ minHeight: '200px' }}>
+              <div style={{ height: '1.5rem', width: '40%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem' }} />
+              <div style={{ height: '1rem', width: '50%', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', marginBottom: '0.75rem' }} />
+              <div style={{ height: '2.5rem', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)' }} />
+            </div>
           </div>
         </div>
       </div>
@@ -111,7 +164,24 @@ export default function Profile() {
   }
 
   return (
-    <div className="profile fade-in">
+    <div style={{ position: 'relative', overflow: 'hidden', minHeight: 'calc(100vh - 72px)', width: '100%' }}>
+      {!bgDisabled && (
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
+          <PixelSnow
+            color={snowColor}
+            flakeSize={0.01}
+            minFlakeSize={1.25}
+            pixelResolution={180}
+            speed={1.0}
+            density={0.175}
+            direction={125}
+            brightness={1}
+            variant="snowflake"
+          />
+        </div>
+      )}
+
+      <div className="container profile fade-in" style={{ position: 'relative', zIndex: 1 }}>
       <div className="profile-header">
         <button className="back-btn" onClick={() => navigate('/library')}>
           <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -163,9 +233,20 @@ export default function Profile() {
 
             <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '1.5rem', marginTop: '1.5rem' }}>
               <p className="item-meta">Email: <strong>{user.email}</strong></p>
-              <p className="item-meta" style={{ marginTop: '0.5rem' }}>
+              <p className="item-meta" style={{ marginTop: '0.5rem', marginBottom: '1.25rem' }}>
                 Member since: {new Date(user.createdAt).toLocaleDateString()}
               </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem', borderTop: '1px solid var(--border-light)', paddingTop: '1rem', marginTop: '1rem' }}>
+                <span className="item-meta" style={{ fontWeight: '500' }}>Background Animations</span>
+                <button
+                  type="button"
+                  className={`btn ${bgDisabled ? 'btn-primary' : 'btn-outline'}`}
+                  onClick={toggleBgAnimation}
+                  style={{ fontSize: '0.8125rem', padding: '0.4rem 0.8rem' }}
+                >
+                  {bgDisabled ? 'Turn On' : 'Turn Off'}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -256,5 +337,6 @@ export default function Profile() {
         </div>
       </div>
     </div>
+  </div>
   );
 }
